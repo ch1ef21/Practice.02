@@ -4,10 +4,8 @@ import os
 
 app = Flask(__name__)
 
-# Хранилище корзин в памяти
 carts = {}
 
-# ПРИНУДИТЕЛЬНО ВЫКЛЮЧАЕМ ПРОКСИ ВНУТРИ ПРОГРАММЫ
 os.environ['no_proxy'] = '127.0.0.1,localhost'
 
 CATALOG_BASE_URL = "http://127.0.0.1:5001"
@@ -23,7 +21,6 @@ def add_to_cart():
     quantity = data.get('quantity', 1)
 
     try:
-        # Прямой запрос к каталогу без учета настроек Windows
         session = requests.Session()
         session.trust_env = False 
         
@@ -33,19 +30,18 @@ def add_to_cart():
         if response.status_code == 404:
             return jsonify({"error": "Товар не найден в каталоге"}), 404
         
-        # Проверяем, что нам пришел именно JSON
+        
         try:
             product_data = response.json()
         except Exception:
             return jsonify({
                 "error": "Каталог ответил не в формате JSON",
-                "received": response.text[:100] # Посмотрим кусочек того, что пришло
+                "received": response.text[:100] 
             }), 500
 
     except Exception as e:
         return jsonify({"error": "Связь с Каталогом прервана", "details": str(e)}), 503
 
-    # Логика добавления
     if user_id not in carts:
         carts[user_id] = []
 

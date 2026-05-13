@@ -3,7 +3,7 @@ from flask import Flask, jsonify, abort
 app = Flask(__name__)
 
 products = [
-    {"id": 1, "name": "Смартфон ", "price": 15000, "stock": 10},
+    {"id": 1, "name": "Смартфон", "price": 15000, "stock": 10},
     {"id": 2, "name": "Игровой руль ", "price": 25000, "stock": 5},
     {"id": 3, "name": "Видеокарта ", "price": 12000, "stock": 0},
     {"id": 4, "name": "Видеокарта №2", "price": 125000, "stock": 100},
