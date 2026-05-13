@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   
+      - "15672:15672" 
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  catalog-service:
+    build: ./app
+    container_name: catalog-app
+    ports:
+      - "5001:5001"
+    restart: always
+
+  cart-service:
+    build: ./cart
+    container_name: cart-app
+    ports:
+      - "5002:5002"
+    environment:
+      - CATALOG_BASE_URL=http://catalog-service:5001 
+    depends_on:
+      - catalog-service
+
+  order-service:
+    build: ./orders
+    container_name: order-app
+    ports:
+      - "3000:3000"
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
