@@ -33,5 +33,9 @@ jobs:
           pip install -r orders/requirements.txt
 
       - name: Build with Docker Compose
-        run: docker-compose build
+        run: docker compose build
 
+      - name: Run with Docker Compose
+        run: |
+          docker compose up -d  
+          docker compose ps      
