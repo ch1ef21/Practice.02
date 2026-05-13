@@ -26,11 +26,39 @@ jobs:
           [ -f cart/requirements.txt ] && pip install -r cart/requirements.txt || echo "cart/req not found"
           [ -f orders/requirements.txt ] && pip install -r orders/requirements.txt || echo "orders/req not found"
 
-      - name: Build with Docker Compose
-        run: docker compose build
-
-      - name: Run with Docker Compose
+      - name: Test Build and Run with Docker Compose
         run: |
+          docker compose build
           docker compose up -d
           sleep 10
           docker compose ps
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Push Catalog Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/catalog-service:latest
+
+      - name: Push Cart Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./cart
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cart-service:latest
+
+      - name: Push Orders Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./orders
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/order-service:latest
