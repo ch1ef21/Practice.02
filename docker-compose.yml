@@ -40,7 +40,7 @@ services:
       dockerfile: orders/Dockerfile
     container_name: order-app
     ports:
-      - "3001:3000"
+      - "8080:3000"
     environment:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
