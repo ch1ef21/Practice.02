@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY integrationLib/ ./integrationLib/
 
-COPY . .
+COPY cart/ .
 
 CMD ["python", "cartService.py"]
