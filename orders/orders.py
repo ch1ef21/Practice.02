@@ -1,26 +1,11 @@
 from flask import Flask, request, jsonify
-import pika
-import json
 import uuid
 from datetime import datetime
+# Импортируем наш общий сервис
+from integrationLib.rabbitmq_helper import IntegrationService
 
 app = Flask(__name__)
-
-def send_to_queue(message):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
-
-    channel.queue_declare(queue='order_events', durable=True)
-
-    channel.basic_publish(
-        exchange='',
-        routing_key='order_events',
-        body=json.dumps(message),
-        properties=pika.BasicProperties(
-            delivery_mode=2,  
-        )
-    )
-    connection.close()
+integration = IntegrationService()
 
 @app.route('/orders/create', methods=['POST'])
 def create_order():
@@ -42,14 +27,14 @@ def create_order():
     }
 
     try:
-        send_to_queue(order_event)
+        integration.publish_message(queue_name='order_events', message=order_event)
     except Exception as e:
-        return jsonify({"error": f"Ошибка RabbitMQ: {str(e)}"}), 500
+        return jsonify({"error": f"Ошибка интеграции: {str(e)}"}), 500
 
     return jsonify({
-        "message": "Заказ создан и отправлен в очередь на обработку",
+        "message": "Заказ создан и отправлен в очередь",
         "order_id": order_id
     }), 201
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(debug=True, host='0.0.0.0', port=3000)
