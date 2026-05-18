@@ -30,9 +30,11 @@ services:
     environment:
       - CATALOG_BASE_URL=http://catalog-service:5001 
       - RABBITMQ_HOST=rabbitmq
+      - ORDER_SERVICE_URL=http://order-service:3000
     depends_on:
       - catalog-service
       - rabbitmq
+      - order-service
 
   order-service:
     build:
