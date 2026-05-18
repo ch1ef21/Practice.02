@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 import os
 import integrationLib.rabbitmq_helper as rabbitmq_helper
+from mapping.order_mapper import map_cart_to_order
 
 app = Flask(__name__)
 integration = rabbitmq_helper.IntegrationService()
@@ -67,17 +68,7 @@ def checkout():
         return jsonify({"error": "Корзина пуста"}), 400
 
 
-    transformed_items = []
-    for item in user_cart:
-        transformed_items.append({
-            "product_id": item['product_id'],
-            "quantity": item['quantity']
-        })
-
-    order_payload = {
-        "user_id": user_id,
-        "items": transformed_items
-    }
+    order_payload = map_cart_to_order(user_id, user_cart)
 
     try:
         response = requests.post(
