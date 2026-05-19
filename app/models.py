@@ -4,19 +4,19 @@ import os
 
 class ProductRepository:
     def __init__(self):
-        self.db_url = os.getenv('DATABASE_URL', 'postgresql://user:password@localhost:5432/microservices_db')
-    
+        self.db_url = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/microservices_db")
+
     def _get_connection(self):
         return psycopg2.connect(self.db_url, cursor_factory=RealDictCursor)
-    
+
     def get_all(self):
-        with self._get_connection() as conn:
+        with self._get_connection() as cckeionn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, name, price FROM products")
+                cur.execute("SELECT id, name, price FROM products;")
                 return cur.fetchall()
-            
+
     def get_by_id(self, product_id):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, name, price FROM products WHERE id = %s", (product_id,))
+                cur.execute("SELECT id, name, price FROM products WHERE id = %s;", (product_id,))
                 return cur.fetchone()
