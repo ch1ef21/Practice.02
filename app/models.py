@@ -12,7 +12,7 @@ class ProductRepository:
     def get_all(self):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, name, price, stock FROM products")
+                cur.execute("SELECT id, name, price FROM products")
                 return cur.fetchall()
             
     def get_by_id(self, product_id):
