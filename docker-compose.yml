@@ -12,6 +12,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - microservice-network
 
   db:
     image: postgres:15-alpine
@@ -29,6 +31,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - microservice-network
 
   catalog-service:
     build:
@@ -43,11 +47,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - microservice-network
       
   catalog-worker:
-    build: ./app
+    build: 
+      context: .
+      dockerfile: app/Dockerfile
     container_name: catalog-worker
-    command: python consumer.py
+    command: python app/consumer.py
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
       - RABBITMQ_HOST=rabbitmq
@@ -57,7 +65,7 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      - app-network
+      - microservice-network
       
   cart-service:
     build:
@@ -75,6 +83,8 @@ services:
         condition: service_healthy
       catalog-service:
         condition: service_started
+    networks:
+      - microservice-network
 
   order-service:
     build:
@@ -91,3 +101,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    networks:
+      - microservice-network
+
+networks:
+  microservice-network:
+    driver: bridge
