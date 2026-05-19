@@ -1,9 +1,9 @@
 import json
 import time
 import sys
+import os
+import pika
 from models import ProductRepository
-import psycopg2
-import integrationLib.rabbitmq_helper as rabbitmq_helper
 
 db_set_products = ProductRepository()
 
@@ -19,8 +19,7 @@ def process_order_event(ch, method, properties, body):
                 for item in items:
                     product_id = item.get('product_id')
                     quantity = item.get('quantity', 1)
-                    
-                    print(f"Синхронизация: Уменьшаем товар {product_id} на {quantity} шт.", flush=True)
+                    print(f"Синхронизация: Списываем товар {product_id} в количестве {quantity} шт.", flush=True)
                 conn.commit()
                 
         print(" [x] Синхронизация каталога успешно завершена!", flush=True)
@@ -34,19 +33,29 @@ def main():
     print("Запуск воркера синхронизации Каталога...", flush=True)
     time.sleep(10)
     
-    integration = rabbitmq_helper.IntegrationService()
+    rabbitmq_host = os.getenv("RABBITMQ_HOST", "rabbitmq")
     
-    integration.channel.queue_declare(queue='order_events', durable=True)
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+    channel = connection.channel()
     
-    integration.channel.basic_qos(prefetch_count=1)
+    channel.queue_declare(queue='order_events', durable=True)
     
-    integration.channel.basic_consume(
+    channel.basic_qos(prefetch_count=1)
+    
+    channel.basic_consume(
         queue='order_events', 
         on_message_callback=process_order_event
     )
     
-    print(" [*] Ожидание сообщений синхронизации. Для выхода нажмите CTRL+C", flush=True)
-    integration.channel.start_consuming()
+    print(" [*] Успешно подключено к RabbitMQ. Ожидание сообщений...", flush=True)
+    channel.start_consuming()
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Воркер остановлен вручную.')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
