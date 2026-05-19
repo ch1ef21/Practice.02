@@ -1,5 +1,5 @@
 import psycopg2
-from psycopg2.extras import ReadlDictCursor
+from psycopg2.extras import RealDictCursor
 import os
 
 class ProductRepository:
@@ -7,7 +7,7 @@ class ProductRepository:
         self.db_url = os.getenv('DATABASE_URL', 'postgresql://user:password@localhost:5432/microservices_db')
     
     def _get_connection(self):
-        return psycopg2.connect(self.db_url, cursor_factory=ReadlDictCursor)
+        return psycopg2.connect(self.db_url, cursor_factory=RealDictCursor)
     
     def get_all(self):
         with self._get_connection() as conn:
