@@ -43,7 +43,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
+      
+  catalog-worker:
+    build: ./app
+    container_name: catalog-worker
+    command: python consumer.py
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+      
   cart-service:
     build:
       context: .
