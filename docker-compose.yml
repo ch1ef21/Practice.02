@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -11,40 +13,66 @@ services:
       timeout: 5s
       retries: 5
 
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: microservices_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d microservices_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   catalog-service:
     build:
-      context: .             
+      context: .
       dockerfile: app/Dockerfile
     container_name: catalog-app
     ports:
       - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
     restart: always
+    depends_on:
+      db:
+        condition: service_healthy
 
   cart-service:
     build:
-      context: .              
+      context: .
       dockerfile: cart/Dockerfile
     container_name: cart-app
     ports:
       - "5002:5002"
     environment:
       - CATALOG_BASE_URL=http://catalog-service:5001 
-      - RABBITMQ_HOST=rabbitmq
       - ORDER_SERVICE_URL=http://order-service:3000
+      - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
     depends_on:
-      - catalog-service
-      - rabbitmq
-      - order-service
+      db:
+        condition: service_healthy
+      catalog-service:
+        condition: service_started
 
   order-service:
     build:
-      context: .             
+      context: .
       dockerfile: orders/Dockerfile
     container_name: order-app
     ports:
-      - "8080:3000"
+      - "8080:3000"  
     environment:
       - RABBITMQ_HOST=rabbitmq
+      - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
     depends_on:
+      db:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
