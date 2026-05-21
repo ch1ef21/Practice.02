@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Микросервисный Магазин — Листинг</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: sans-serif; }
+        .navbar-brand { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">📦 Microshop Панель</span>
+            <span class="text-light">Пользователь: <strong>student_77</strong></span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Листинг товаров (catalog-service)</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadProducts()">🔄 Обновить данные</button>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Название товара</th>
+                                        <th>Цена</th>
+                                        <th>Остаток на складе</th>
+                                        <th class="text-end">Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                            Загрузка товаров из микросервиса...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CATALOG_API_URL = 'http://localhost:5001/products';
+        const CART_API_URL = 'http://localhost:5002/cart/add';
+
+        async function loadProducts() {
+            const tableBody = document.getElementById('products-table-body');
+            
+            try {
+                const response = await fetch(CATALOG_API_URL);
+                if (!response.ok) throw new Error('Ошибка при ответе сервера');
+                
+                const products = await response.json();
+                tableBody.innerHTML = ''; 
+
+                if (products.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Товары отсутствуют</td></tr>`;
+                    return;
+                }
+
+                products.forEach(product => {
+                    const isOutOfStock = product.stock <= 0;
+                    
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td><strong>${product.id}</strong></td>
+                            <td>${product.name}</td>
+                            <td><span class="badge bg-success">${product.price} $</span></td>
+                            <td>
+                                <span class="badge ${product.stock <= 2 ? 'bg-danger' : 'bg-secondary'}">
+                                    ${product.stock} шт.
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <button 
+                                    class="btn btn-primary btn-sm" 
+                                    onclick="addToCart(${product.id})"
+                                    ${isOutOfStock ? 'disabled' : ''}>
+                                    ${isOutOfStock ? 'Нет в наличии' : '🛒 В корзину'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error(error);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger py-4">
+                             Не удалось подключиться к микросервису каталога (${CATALOG_API_URL}). Проверь, запущен ли Docker?
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        async function addToCart(productId) {
+            try {
+                const response = await fetch(CART_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: 'student_77',
+                        product_id: productId,
+                        quantity: 1
+                    })
+                });
+
+                if (response.ok) {
+                    alert(`Товар с ID ${productId} успешно добавлен в корзину для student_77!`);
+                } else {
+                    const errorData = await response.json();
+                    alert(`Ошибка при добавлении: ${errorData.error || 'Неизвестная ошибка'}`);
+                }
+            } catch (error) {
+                alert('Ошибка сети: не удалось отправить запрос в сервис корзины.');
+            }
+        }
+
+        window.onload = loadProducts;
+    </script>
+</body>
+</html>
