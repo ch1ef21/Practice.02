@@ -1,8 +1,10 @@
 import sys
 from flask import Flask, jsonify, request
 from models import ProductRepository
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 db_set_products = ProductRepository()
 
 def init_defaults():
