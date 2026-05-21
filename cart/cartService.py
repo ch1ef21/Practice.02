@@ -3,8 +3,10 @@ import requests
 import os
 import integrationLib.rabbitmq_helper as rabbitmq_helper
 from mapping.order_mapper import map_cart_to_order
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 integration = rabbitmq_helper.IntegrationService()
 
 carts = {}
