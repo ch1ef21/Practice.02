@@ -1,7 +1,22 @@
 import sys
+import structlog
 from flask import Flask, jsonify, request
-from models import ProductRepository
 from flask_cors import CORS
+from models import ProductRepository
+
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"), 
+        structlog.processors.add_log_level,          
+        structlog.processors.JSONRenderer()           
+    ],
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+logger = structlog.get_logger()
 
 app = Flask(__name__)
 CORS(app)
@@ -22,55 +37,73 @@ def init_defaults():
                         ('Graphics Card GTX 1070', 250.00, 2);
                     """)
                     conn.commit()
-                    print("БАЗА БЫЛА ПУСТА: Созданы 3 базовых товара со складом!", flush=True)
+                    logger.info("Database initialized with default products", action="db_init", count=3)
                 else:
                     cur.execute("""
                         SELECT COLUMN_NAME 
                         FROM INFORMATION_SCHEMA.COLUMNS 
                         WHERE TABLE_NAME = 'products' AND COLUMN_NAME = 'stock';
                     """)
-                    column_exists = cur.fetchone()
-                    
-                    if not column_exists:
-                        print("Авто-миграция: Колонка 'stock' не найдена. Добавляю...", flush=True)
+                    if not cur.fetchone():
+                        logger.warn("Column 'stock' not found. Running auto-migration...", action="db_migration")
                         cur.execute("ALTER TABLE products ADD COLUMN stock INTEGER NOT NULL DEFAULT 10;")
                         cur.execute("UPDATE products SET stock = 5 WHERE name = 'Laptop';")
                         cur.execute("UPDATE products SET stock = 2 WHERE name = 'Graphics Card GTX 1070';")
                         conn.commit()
-                        print("База успешно обновлена!", flush=True)
+                        logger.info("Database schema updated successfully", action="db_migration_success")
                     else:
-                        print(f"В базе уже есть товары ({count}) и колонка stock на месте.", flush=True)
+                        logger.info("Database integrity check passed", action="db_check", current_count=count)
     except Exception as e:
-        print(f"Ошибка инициализации базы данных: {e}", file=sys.stderr, flush=True)
+        logger.error("Database initialization failed", error=str(e), action="db_init_error")
 
 @app.route('/products', methods=['GET'])
 def get_products():
     products = db_set_products.get_all()
+    logger.info("Fetched all products from catalog", count=len(products))
     return jsonify(products), 200
 
 @app.route('/products/<int:product_id>', methods=['GET'])
 def get_product(product_id):
     product = db_set_products.get_by_id(product_id)
     if product is None:
+        logger.warn("Product not found", product_id=product_id, status_code=404)
         return jsonify({'error': 'Товар не найден'}), 404
+    logger.info("Fetched single product details", product_id=product_id, name=product['name'])
     return jsonify(product), 200
 
 @app.route('/products/<int:product_id>/check-stock', methods=['POST'])
 def check_stock(product_id):
     product = db_set_products.get_by_id(product_id)
     if product is None:
+        logger.warn("Stock check failed: Product not found", product_id=product_id)
         return jsonify({'error': 'Товар не найден в каталоге'}), 404
         
     data = request.get_json() or {}
     requested_quantity = data.get('quantity', 1)
     
     if product['stock'] < requested_quantity:
+        logger.error(
+            "Insufficient stock for order", 
+            product_id=product_id, 
+            product_name=product['name'],
+            available=product['stock'], 
+            requested=requested_quantity,
+            status="REJECTED"
+        )
         return jsonify({
             'error': 'Недостаточно товара на складе',
             'available': product['stock'],
             'requested': requested_quantity
         }), 400
         
+    logger.info(
+        "Stock check approved", 
+        product_id=product_id, 
+        product_name=product['name'],
+        current_stock=product['stock'],
+        requested=requested_quantity,
+        status="APPROVED"
+    )
     return jsonify({
         'status': 'Доступно',
         'product_id': product_id,
