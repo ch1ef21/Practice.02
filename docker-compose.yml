@@ -39,7 +39,7 @@ services:
       dockerfile: app/Dockerfile
     container_name: catalog-app
     ports:
-      - "5001:5001"
+      - "5015:5001"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
     restart: always
