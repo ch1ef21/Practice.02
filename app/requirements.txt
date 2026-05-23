@@ -3,3 +3,4 @@ pika
 requests
 psycopg2-binary
 flask-cors
+structlog
