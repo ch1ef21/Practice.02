@@ -12,7 +12,6 @@ integration = rabbitmq_helper.IntegrationService()
 carts = {}
 
 CATALOG_BASE_URL = os.getenv("CATALOG_BASE_URL", "http://127.0.0.1:5001")
-ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:3000")
 
 @app.route('/cart/add', methods=['POST'])
 def add_to_cart():
@@ -69,28 +68,26 @@ def checkout():
     if not user_cart:
         return jsonify({"error": "Корзина пуста"}), 400
 
-
     order_payload = map_cart_to_order(user_id, user_cart)
 
     try:
-        response = requests.post(
-            f"{ORDER_SERVICE_URL}/orders/create",
-            json=order_payload,
-            timeout=5
+        integration.publish_message(
+            queue_name="order_checkout", 
+            message=order_payload
         )
         
-        if response.status_code == 201:
-            carts[user_id] = []
-            return jsonify({
-                "status": "success",
-                "message": "Заказ успешно передан в модуль заказов",
-                "order_response": response.json()
-            }), 201
-        else:
-            return jsonify({"error": "Модуль заказов отклонил запрос"}), response.status_code
+        carts[user_id] = []
+        
+        return jsonify({
+            "status": "accepted",
+            "message": "Запрос на оформление заказа принят и поставлен в очередь обработки"
+        }), 202
 
     except Exception as e:
-        return jsonify({"error": f"Не удалось связаться с модулем заказов: {str(e)}"}), 500
+        return jsonify({
+            "error": "Не удалось отправить заказ в шину сообщений", 
+            "details": str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5002)
