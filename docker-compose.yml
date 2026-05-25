@@ -36,7 +36,7 @@ services:
   catalog-service:
     build:
       context: .
-      dockerfile: app/Dockerfile
+      dockerfile: .app/Dockerfile
     container_name: catalog-app
     ports:
       - "5015:5001"
