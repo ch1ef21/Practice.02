@@ -41,7 +41,7 @@ def test_integration_performance_benchmark():
 
     print(f"\n[BENCHMARK] Результаты замера времени отклика (Latency):")
     print(f"  - Catalog (1-й запрос, Холодный):  {catalog_latency_cold:.2f} ms (Идёт в БД)")
-    print(f"  - Catalog (2-й запрос, Горячий):   {catalog_latency_hot:.2f} ms (Идёт в КЭШ 🚀)")
+    print(f"  - Catalog (2-й запрос, Горячий):   {catalog_latency_hot:.2f} ms (Идёт в кэш)")
     print(f"  - Cart Service    (POST /cart/add): {cart_latency:.2f} ms")
     print(f"  - Order Service   (POST /orders):   {order_latency:.2f} ms")
     print(f"  - Суммарное время синхронной фазы:  {catalog_latency_hot + cart_latency + order_latency:.2f} ms")
