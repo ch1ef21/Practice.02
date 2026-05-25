@@ -50,20 +50,23 @@ jobs:
       - name: Push Catalog Image
         uses: docker/build-push-action@v5
         with:
-          context: ./app
+          context: .                
+          file: ./app/Dockerfile     
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/catalog-service:latest
 
       - name: Push Cart Image
         uses: docker/build-push-action@v5
         with:
-          context: ./cart
+          context: .                  
+          file: ./cart/Dockerfile     
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/cart-service:latest
 
       - name: Push Orders Image
         uses: docker/build-push-action@v5
         with:
-          context: ./orders
+          context: .                  
+          file: ./orders/Dockerfile   
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/order-service:latest
