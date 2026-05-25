@@ -6,7 +6,6 @@ BASE_URL = "http://127.0.0.1:5015"
 NO_PROXY = {"http": None, "https": None}
 
 def test_integration_catalog_lifecycle():
-    """Интеграционный тест: сквозная проверка каталога и остатков склада в обход прокси"""
     
     response = requests.get(f"{BASE_URL}/products", proxies=NO_PROXY)
     assert response.status_code == 200, f"Ожидался 200, но получен {response.status_code}"
