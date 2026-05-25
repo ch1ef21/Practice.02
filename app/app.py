@@ -3,6 +3,7 @@ import structlog
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from models import ProductRepository
+from cachetools import TTLCache
 
 structlog.configure(
     processors=[
@@ -21,6 +22,8 @@ logger = structlog.get_logger()
 app = Flask(__name__)
 CORS(app)
 db_set_products = ProductRepository()
+
+products_cache = TTLCache(maxsize=10, ttl=60)
 
 def init_defaults():
     try:
@@ -58,8 +61,15 @@ def init_defaults():
 
 @app.route('/products', methods=['GET'])
 def get_products():
+    if "all_products" in products_cache:
+        cached_data = products_cache["all_products"]
+        logger.info("Fetched all products from cache (Cache Hit)", count=len(cached_data), source="memory_cache")
+        return jsonify(cached_data), 200
+
     products = db_set_products.get_all()
-    logger.info("Fetched all products from catalog", count=len(products))
+    logger.info("Fetched all products from catalog database (Cache Miss)", count=len(products), source="postgresql")
+    
+    products_cache["all_products"] = products
     return jsonify(products), 200
 
 @app.route('/products/<int:product_id>', methods=['GET'])
