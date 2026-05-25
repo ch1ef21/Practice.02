@@ -74,13 +74,14 @@ services:
       - "5002:5002"
     environment:
       - CATALOG_BASE_URL=http://catalog-service:5001 
-      - ORDER_SERVICE_URL=http://order-service:3000
       - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
     depends_on:
       db:
         condition: service_healthy
       catalog-service:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - microservice-network
 
@@ -94,6 +95,27 @@ services:
     environment:
       - RABBITMQ_HOST=rabbitmq
       - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - microservice-network
+
+  order-worker:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: order-worker
+    working_dir: /app
+    command: python order_consumer.py
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - DATABASE_URL=postgresql://user:password@db:5432/microservices_db
+    volumes:
+      - ./app:/app
+      - ./integrationLib:/app/integrationLib
     depends_on:
       db:
         condition: service_healthy
