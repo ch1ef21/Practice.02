@@ -5,3 +5,4 @@ psycopg2-binary
 flask-cors
 structlog
 cachetools==5.3.3
+flasgger==0.9.7.1
