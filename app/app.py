@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from models import ProductRepository
 from cachetools import TTLCache
+from flasgger import Swagger
 
 structlog.configure(
     processors=[
@@ -21,6 +22,14 @@ logger = structlog.get_logger()
 
 app = Flask(__name__)
 CORS(app)
+
+app.config['SWAGGER'] = {
+    'title': 'Catalog Service API магазина',
+    'uiversion': 3,
+    'description': 'Спецификация OpenAPI для модуля каталога магазина.'
+}
+swagger = Swagger(app)
+
 db_set_products = ProductRepository()
 
 products_cache = TTLCache(maxsize=10, ttl=60)
@@ -61,6 +70,34 @@ def init_defaults():
 
 @app.route('/products', methods=['GET'])
 def get_products():
+
+    """
+    Получить список всех товаров
+    ---
+    tags:
+      - Products
+    responses:
+      200:
+        description: Успешный возврат номенклатуры (работает через RAM кэш)
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: "Graphics Card GTX 1070"
+              price:
+                type: number
+                example: 250.00
+              stock:
+                type: integer
+                example: 2
+    """
+
     if "all_products" in products_cache:
         cached_data = products_cache["all_products"]
         logger.info("Fetched all products from cache (Cache Hit)", count=len(cached_data), source="memory_cache")
@@ -83,6 +120,43 @@ def get_product(product_id):
 
 @app.route('/products/<int:product_id>/check-stock', methods=['POST'])
 def check_stock(product_id):
+
+    """
+    Проверить доступность тренажера на складе
+    ---
+    tags:
+      - Warehouse
+    parameters:
+      - name: product_id
+        in: path
+        type: integer
+        required: true
+        description: Уникальный ID продукта
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            quantity:
+              type: integer
+              default: 1
+              description: Запрашиваемое количество
+    responses:
+      200:
+        description: Товар доступен для резерва
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Доступно"
+      400:
+        description: Недостаточно товара на складе (Ошибка валидации)
+      404:
+        description: Товар не найден в базе данных каталога
+    """
+    
     product = db_set_products.get_by_id(product_id)
     if product is None:
         logger.warn("Stock check failed: Product not found", product_id=product_id)
