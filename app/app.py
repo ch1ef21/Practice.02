@@ -122,7 +122,7 @@ def get_product(product_id):
 def check_stock(product_id):
 
     """
-    Проверить доступность тренажера на складе
+    Проверить доступность товара на складе
     ---
     tags:
       - Warehouse
