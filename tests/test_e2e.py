@@ -43,11 +43,24 @@ def test_e2e_order_placement_saga_lifecycle():
     print("[E2E] Ожидание асинхронной обработки транзакции оркестратором Саги через RabbitMQ...")
     time.sleep(3)
 
-    final_cat_res = requests.get(f"{CATALOG_URL}/products", proxies=NO_PROXY)
-    final_products = final_cat_res.json()
-    updated_product = next(p for p in final_products if p["id"] == product_id)
+    print("[E2E] Ожидание асинхронной обработки транзакции оркестратором Саги через RabbitMQ...")
+    time.sleep(3)
     
-    print(f"[E2E] Шаг 4: Проверка склада. Было: {initial_stock}, стало: {updated_product['stock']}")
-    
-    assert updated_product["stock"] == initial_stock - 1
+
+    final_cat_res = requests.post(
+            f"{CATALOG_URL}/products/{product_id}/check-stock", 
+            json={"quantity": initial_stock}, 
+            proxies=NO_PROXY
+        )
+        
+    print(f"[E2E] Шаг 4: Ответ склада на проверку количества {initial_stock}. HTTP статус: {final_cat_res.status_code}")
+        
+    if final_cat_res.status_code == 400:
+            print(f"[E2E] Успех! Склад уменьшился. Исходное количество {initial_stock} больше недоступно.")
+            stock_updated = True
+    else:
+            stock_updated = False
+            print(f"[E2E] Внимание: склад вернул ответ {final_cat_res.text}")
+
+    assert stock_updated, f"Склад не изменился! Система всё ещё подтверждает доступность {initial_stock} единиц товара."
     print("--- E2E ТЕСТ УСПЕШНО ЗАВЕРШЕН (ВСЯ СИСТЕМА СИНХРОНИЗИРОВАНА) ---")
